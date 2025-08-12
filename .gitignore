@@ -1,0 +1,3 @@
+.cache.sqlite
+__pycache__/
+.venv

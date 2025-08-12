@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crop Recommendation System</title>
+    <script>
+    navigator.geolocation.getCurrentPosition(
+    function(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        console.log("Lat:", latitude, "Lng:", longitude);
+
+        // Send to backend via fetch
+        fetch("/get-weather", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: latitude, lon: longitude })
+        });
+    },
+    function(error) {
+        console.error("Location error:", error.message);
+    });
+    
+    function fetchAndFill() {
+    // First fetch: Soil values
+    fetch("http://localhost:5000/soil-values")
+        .then(res => {
+            if (!res.ok) throw new Error("Soil API error");
+            return res.json();
+        })
+        .then(data => {
+            document.querySelector("input[name='P']").value = data.P;
+            document.querySelector("input[name='K']").value = data.K;
+            document.querySelector("input[name='N']").value = data.N;
+            document.querySelector("input[name='ph']").value = data.pH;
+        })
+        .catch(err => {
+            console.error("Soil values fetch error:", err);
+            showPopup("⚠️ No soil data available for your district.");
+        });
+
+    // Second fetch: Weather values
+    fetch("http://localhost:5000/get-weather")
+        .then(res => {
+            if (!res.ok) throw new Error("Weather API error");
+            return res.json();
+        })
+        .then(weather => {
+            document.querySelector("input[name='temperature']").value = weather.avg_temperature;
+            document.querySelector("input[name='humidity']").value = weather.avg_humidity;
+            document.querySelector("input[name='rainfall']").value = weather.total_rainfall;
+        })
+        .catch(err => {
+            console.error("Weather fetch error:", err);
+            showPopup("⚠️ Weather data could not be retrieved.");
+        });
+    }
+
+    function showPopup(message, duration = 3000) {
+    const popup = document.getElementById("popup");
+    const text = document.getElementById("popup-text");
+
+    text.textContent = message;
+    popup.style.display = "block";
+
+    setTimeout(() => {
+        popup.style.display = "none";
+    }, duration);
+    }
+
+    </script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 500px;
+            margin: auto;
+            padding: 2rem;
+        }
+        input, button {
+            padding: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div id="popup" style="
+    display: none;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #ffdddd;
+    color: #333;
+    border: 1px solid #ff8888;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    ">
+    <span id="popup-text"></span>
+    </div>
+
+    <h2>Crop Recommendation System</h2>
+    <form method="post">
+        <label>Nitrogen (N):</label>
+        <input type="number" name="N" step="any" required>
+
+        <label>Phosphorus (P):</label>
+        <input type="number" name="P" step="any" required>
+
+        <label>Potassium (K):</label>
+        <input type="number" name="K" step="any" required>
+
+        <label>Temperature (°C):</label>
+        <input type="number" name="temperature" step="any" required>
+
+        <label>Humidity (%):</label>
+        <input type="number" name="humidity" step="any" required>
+
+        <label>pH:</label>
+        <input type="number" name="ph" step="any" required>
+
+        <label>Rainfall (mm):</label>
+        <input type="number" name="rainfall" step="any" required>
+
+        <button type="submit">Recommend Crop</button>
+    </form>
+
+    <button onclick="fetchAndFill()">Autofill From Location</button>
+
+    {% if prediction %}
+        <div class="result">
+            <strong>Recommended Crop:</strong> {{ prediction }}
+        </div>
+    {% endif %}
+</body>
+</html>
