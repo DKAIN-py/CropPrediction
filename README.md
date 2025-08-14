@@ -59,5 +59,3 @@ Server will start at `localhost:5000`
 * Currently supported in India only
 * Requires Internet access
 * Still in Development phase
-
-```
